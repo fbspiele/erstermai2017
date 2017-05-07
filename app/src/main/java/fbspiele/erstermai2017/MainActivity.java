@@ -123,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
             cameraDevice = null;
         }
     };
-
+    //testtemp
     public void createCameraPreview(){
         try{
             SurfaceTexture texture = textureView.getSurfaceTexture();
