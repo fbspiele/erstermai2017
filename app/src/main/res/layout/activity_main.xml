@@ -7,21 +7,31 @@
     tools:context="fbspiele.erstermai2017.MainActivity">
 
 
-    <Button
-        android:id="@+id/button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-
-        android:layout_centerHorizontal="true"
-        android:layout_marginBottom="137dp"
-        android:text="auslösen" />
-
     <TextureView
         android:id="@+id/textureView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_alignParentStart="true"
         android:layout_alignParentTop="true" />
+
+    <ImageButton
+        android:id="@+id/takepic"
+        android:layout_width="128dp"
+        android:layout_height="128dp"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:backgroundTint="@color/transparent"
+        android:scaleType="fitCenter"
+        app:srcCompat="@drawable/ic_camera_white_48px" />
+
+    <ImageButton
+        android:id="@+id/changecam"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:backgroundTint="@color/transparent"
+        android:scaleType="fitCenter"
+        app:srcCompat="@drawable/ic_camera_front_white_48px"
+        android:layout_alignBottom="@+id/takepic"
+        android:layout_alignParentEnd="true" />
 
 </RelativeLayout>

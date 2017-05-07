@@ -2,6 +2,7 @@ package fbspiele.erstermai2017;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
@@ -14,6 +15,7 @@ import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -21,16 +23,28 @@ import android.util.Log;
 import android.util.Size;
 import android.view.Surface;
 import android.view.TextureView;
+import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
+import android.widget.Toast;
+
 import java.util.Arrays;
 
-
+/*
+*
+*
+        SharedPreferences settings = getSharedPreferences("settingsfile", 0);
+        SharedPreferences.Editor editor = settings.edit();
+        editor.putInt("datenpunkte", datenpunkte);
+        editor.apply();
+* */
 //https://inducesmile.com/android/android-camera2-api-example-tutorial/
 
 public class MainActivity extends AppCompatActivity {
 
     TextureView textureView;
-    Button button;
+    ImageButton ibtakepic;
+    ImageButton ibchangecam;
     String cameraId;
     Size imageDimension;
     private Handler handler;
@@ -38,15 +52,53 @@ public class MainActivity extends AppCompatActivity {
     protected CaptureRequest.Builder captureRequestBuilder;
     protected CameraCaptureSession cameraCaptureSession;
     private HandlerThread handlerThread;
+    int letztegeoffnetecamera=0;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         textureView = (TextureView) findViewById(R.id.textureView);
-        button = (Button) findViewById(R.id.button);
+        ibtakepic = (ImageButton) findViewById(R.id.takepic);
+        ibchangecam = (ImageButton) findViewById(R.id.changecam);
+
         textureView.setSurfaceTextureListener(textureListener);
 
+        SharedPreferences settings = getSharedPreferences("settingsfile", 0);
+        letztegeoffnetecamera = settings.getInt("letztecamera", 0);
+        Log.v("letztecam",letztegeoffnetecamera + " (0 = back-, 1 = frontfacing)");
+
+        ibchangecam.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                switch (letztegeoffnetecamera){
+                    case 0:
+                        letztegeoffnetecamera=1;
+                        ibchangecam.setImageDrawable(getDrawable(R.drawable.ic_camera_rear_white_48px));
+                        Log.v("changecam","von back auf front");
+                        break;
+                    case 1:
+                        letztegeoffnetecamera=0;
+                        ibchangecam.setImageDrawable(getDrawable(R.drawable.ic_camera_front_white_48px));
+                        Log.v("changecam","von front auf back");
+                        break;
+                    default:    //just in case
+                        letztegeoffnetecamera=0;
+                        ibchangecam.setImageDrawable(getDrawable(R.drawable.ic_camera_front_white_48px));
+                        Log.v("changecam","default von front auf back");
+                        break;
+                }
+                closecamera();
+                openCamera();
+            }
+        });
+
+        ibtakepic.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                takepic();
+            }
+        });
     }
     protected void onResume(){
         super.onResume();
@@ -63,6 +115,7 @@ public class MainActivity extends AppCompatActivity {
         stophandlerthread();
         super.onPause();
     }
+
 
     TextureView.SurfaceTextureListener textureListener = new TextureView.SurfaceTextureListener() {
         @Override
@@ -86,10 +139,19 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    public void takepic(){
+        if(cameraDevice == null){
+            Log.e("takepic", "cameraDevice is null");
+            return;
+        }
+        CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+        Log.v("pic machen","gehtnochned\n!!!\n!!!\n!!!\n!!!\n!!!\n!!!\n!!!\n!!!\n!!!\n!!!");
+    }
+
     public void openCamera(){
         CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
         try {
-            cameraId = cameraManager.getCameraIdList()[1];
+            cameraId = cameraManager.getCameraIdList()[letztegeoffnetecamera];
             CameraCharacteristics cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraId);
             StreamConfigurationMap streamConfigurationMap = cameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
             assert streamConfigurationMap != null;
@@ -101,24 +163,25 @@ public class MainActivity extends AppCompatActivity {
             cameraManager.openCamera(cameraId, stateCallback,handler);
         }
         catch (CameraAccessException e){
+            Toast.makeText(getApplicationContext(),"konnte die camera nicht öffnen",Toast.LENGTH_LONG).show();
             e.printStackTrace();
         }
     }
 
     CameraDevice.StateCallback stateCallback = new CameraDevice.StateCallback() {
         @Override
-        public void onOpened(CameraDevice camera) {
+        public void onOpened(@NonNull CameraDevice camera) {
             cameraDevice = camera;
             createCameraPreview();
         }
 
         @Override
-        public void onDisconnected(CameraDevice camera) {
+        public void onDisconnected(@NonNull CameraDevice camera) {
             camera.close();
         }
 
         @Override
-        public void onError(CameraDevice camera, int error) {
+        public void onError(@NonNull CameraDevice camera, int error) {
             cameraDevice.close();
             cameraDevice = null;
         }
@@ -132,14 +195,14 @@ public class MainActivity extends AppCompatActivity {
             captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             captureRequestBuilder.addTarget(surface);
             cameraDevice.createCaptureSession(Arrays.asList(surface), new CameraCaptureSession.StateCallback(){
-                public void onConfigured(CameraCaptureSession cameraCaptureSession2){
+                public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession2){
                     if (cameraDevice == null){
                         return;
                     }
                     cameraCaptureSession = cameraCaptureSession2;
                     updatePreview();
                 }
-                public void onConfigureFailed(CameraCaptureSession cameraCaptureSession2){
+                public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession2){
                     Log.v("createcamprev","configuration changed");
                 }
             },null);
@@ -170,19 +233,15 @@ public class MainActivity extends AppCompatActivity {
 
     protected void stophandlerthread(){
         handlerThread.quitSafely();
-        Log.v("stop h t", "vor try");
         try{
             handlerThread.join();
-            Log.v("stop h t", "zwischen join und thread null");
             handlerThread = null;
-            Log.v("stop h t", "zwischen thread null und handler null");
             handler = null;
         }
         catch (InterruptedException e) {
-            Log.v("stop h t", "interexception e");
             e.printStackTrace();
+            Log.v("stophandlerthread","konnte handlerthread nicht stoppen");
         }
-        Log.v("stop h t","durch");
     }
 
     private void closecamera(){
